@@ -4,13 +4,27 @@ author: "Timm Nawrocki"
 date: "May 17, 2018"
 output:
   html_document:
+    keep_md: yes
     toc: yes
-    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+This repository is a training repository with notes from the May 2018 SASAP Reproducible Research training.
+
+## Getting Started
+These instructions will enable you to run the training resource scripts. This readme file is the output of the "ReproducibleMarkdown.rmd" script.
+
+## Prerequisites
+1. R 3.5.0+
+2. RStudio 1.1.453+
+
+## Installing
+1. The repository should be copied to a local drive. The script files are designed to be run in RStudio.
+
+## Usage
 
 ```{r Set Libraries, include=FALSE}
 # Install required libraries if they are not already installed.
@@ -40,7 +54,7 @@ userDirectory <- choose.dir()
 setwd(userDirectory)
 ```
 
-## Environment Settings
+### Environment Settings
 
 The environment settings for this session are:
 
@@ -49,7 +63,7 @@ The environment settings for this session are:
 sessionInfo()
 ```
 
-## Example Plot
+### Example Plot
 
 The following code produces an example point plot based on random numbers.
 
@@ -59,7 +73,7 @@ ggplot(data.frame(x=rnorm(100), y=rnorm(100)), aes(x,y)) +
 data('mpg')
 ```
 
-## Example Table
+### Example Table
 
 The following code produces an example table using the "mpg" dataset.
 
@@ -67,3 +81,18 @@ The following code produces an example table using the "mpg" dataset.
 data('mpg')
 datatable(mpg, caption='Mileage')
 ```
+
+## Credits
+
+### Built With
+* R 3.5.0
+* RStudio 1.1.453
+
+### Authors
+* **Timm Nawrocki** - *Alaska Center for Conservation Science, University of Alaska Anchorage*
+
+### Usage Requirements
+* none
+
+### License
+This project is private for my notes.
