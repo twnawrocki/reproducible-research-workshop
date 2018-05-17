@@ -1,4 +1,4 @@
-# "Reproducible Analyses Workshop"
+# Reproducible Analyses Workshop
 
 This repository is a training repository with notes from the May 2018 SASAP Reproducible Research training.
 
