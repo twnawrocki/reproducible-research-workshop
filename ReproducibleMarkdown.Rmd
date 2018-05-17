@@ -1,0 +1,69 @@
+---
+title: "Reproducible Analyses Workshop"
+author: "Timm Nawrocki"
+date: "May 17, 2018"
+output:
+  html_document:
+    toc: yes
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Set Libraries, include=FALSE}
+# Install required libraries if they are not already installed.
+Required_Packages <- c("devtools", "dplyr", "DT", "ggplot2", "ggpmisc", "kableExtra", "leaflet", "readxl", "remotes", "tidyr")
+New_Packages <- Required_Packages[!(Required_Packages %in% installed.packages()[,"Package"])]
+if (length(New_Packages) > 0) {
+  install.packages(New_Packages)
+}
+
+# Import required libraries.
+library(devtools)
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(ggpmisc)
+library(kableExtra)
+library(leaflet)
+library(readxl)
+library(remotes)
+library(tidyr)
+
+# Set seed
+set.seed(415)
+
+# Set working directory by user input
+userDirectory <- choose.dir()
+setwd(userDirectory)
+```
+
+## Environment Settings
+
+The environment settings for this session are:
+
+```{r environmentSettings, echo=FALSE}
+# Print session info
+sessionInfo()
+```
+
+## Example Plot
+
+The following code produces an example point plot based on random numbers.
+
+```{r examplePlot}
+ggplot(data.frame(x=rnorm(100), y=rnorm(100)), aes(x,y)) +
+  geom_point()
+data('mpg')
+```
+
+## Example Table
+
+The following code produces an example table using the "mpg" dataset.
+
+```{r datatable}
+data('mpg')
+datatable(mpg, caption='Mileage')
+```
