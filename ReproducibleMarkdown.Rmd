@@ -75,7 +75,7 @@ datatable(mpg, caption='Mileage')
 catch_data = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"), stringsAsFactors = FALSE)
 ```
 
-The pipe function takes an initial defined argument and passes it as the first argument in an initial command. For every subsequent command, the output from the last command is input as the first argument in a subsequent command. The final command needs to be stored as a variable.
+The pipe function (%>%) takes an initial defined argument and passes it as the first argument in an initial command. For every subsequent command where the pipe is repeated, the output from the last command is input as the first argument in a subsequent command. The final command needs to be stored as a variable.
 
 ```{r gatherData}
 # Select columns for analysis and transpose into a new table shape.
@@ -102,3 +102,14 @@ catch_gather <- catch_gather %>%
          catch_thousands = as.integer(catch_thousands)) %>%
   mutate(catch = catch_thousands * 1000)
 ```
+
+
+```{r Analysis}
+catch_species = catch_gather %>%
+  group_by(species) %>%
+  summarize(catch_mean = mean(catch), num_obs = n())
+
+catch_chinookYear = catch_gather %>%
+  filter(species == 'Chinook') %>%
+  group_by(Year) %>%
+  summarize(catch_mean = mean(catch), num_obs = n())
