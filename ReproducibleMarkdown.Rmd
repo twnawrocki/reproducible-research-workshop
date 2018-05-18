@@ -194,3 +194,179 @@ for (i in unique(annual_escapement$Location)) {
 
 # Create data frame from the loop vectors
 percent_met = data.frame(stock, percentMet)
+```
+
+## Foundations of ggplot2
+
+The aesthetic dataset should be mapped into the main ggplot, not the geometry. The geometry should be added afterwards. It is possible to add multiple datasets into a single plot, but they will have competing geometries. This causes a plot that is difficult to interpret. In general, a single plot should have a single aesthetic dataset.
+
+The plot could have multiple geometries: for example, a point plot with a line of best fit. Adding geometries can be thought of as adding multiple layers using the same dataset mapping. Each line in a ggplot must be connected with a '+'.
+
+Colors and fills and the column that differentiates colors are defined in the aesthetic. Aesthetics map the data. The mappings are different than the settings. Settings can be defined in the geometry.
+
+```{r foundationsggplot2}
+# Read monthly salmon permit values into data frame
+permits <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa3c58bd6-481e-4c64-aa93-795df10a4664", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Define a new point plot based on the permits dataset with color set to 'Gear' field
+ggplot(permits, aes(Value, StdDev, color = Gear)) +
+  geom_point()
+```
+
+The size of the geometry can be defined as a constant or variable. For example, the size of points can be defined by a varible in the dataset.
+
+```{r sizeggplot2}
+# Modify point plot based on the permits dataset with size set to 'Range' field
+ggplot(permits, aes(Value, StdDev, color = Gear, size = Range)) +
+  geom_point()
+```
+
+The type of plot is always defined by the geometry. The ggplot2 documentation includes links to all of the types of plots that are possible. The aesthetic arguments change depending on the geometry. For example, histograms only have an x axis defined.
+
+In markdown, two plots produced in the same code chunk will be toggle-able by thumbnails. Discrete axes can be reordered by explicitly defining either an order as vector or a sort order.
+
+```{r definingPlotTypes}
+# Create a column plot with the x axis defined as the 'Gear' field
+permits %>%
+  group_by(Gear) %>%
+  summarize(meanval = mean(Value, na.rm = TRUE)) %>%
+  ggplot(aes(x=Gear, y=meanval/sum(meanval))) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_continuous(labels = c())
+
+# Create a box plot (unfinished)
+ggplot(permits, aes()) +
+  geom_boxplot()
+
+# Creat a violin plot of just the data from Cook Inlet
+permits_CookInlet = filter(permits, Region == 'Cook Inlet')
+
+ggplot(permits_CookInlet, aes(x=Gear, y=Value)) +
+  geom_violin()
+
+# Create a violin plot of just the data from Bristol Bay
+permits_BristolBay = filter(permits, Region == 'Bristol Bay')
+
+ggplot(permits_BristolBay, aes(x=Gear, y=Value)) +
+  geom_violin()
+```
+
+Geometry-specific settings can be added per geometry when adding multiple layers so that the layers match better, etc.
+
+```{r multipleLayers}
+# Add point geometry overlaying violin geometry
+ggplot(permits_CookInlet, aes(x=Gear, y=Value)) +
+  geom_violin() +
+  geom_point(position = 'jitter', shape = 1)
+
+# Add point geometry over a smoothing algorithm
+ggplot(permits_CookInlet, aes(x=Value, y=StdDev)) +
+  geom_smooth(method = 'loess') +
+  geom_point()
+```
+
+Scales can be defined based on limits in the data. Defining scales should be done after adding geometries. The scales can also be defined as cartesian coorindates limits.
+
+```{r plotScales}
+# Create a new data frame of permits in Southeast using Purse Seine gear
+permits_Southeast = filter(permits, Region == 'Southeast' & Gear == 'Purse Seine')
+
+# Define scales in plot using scale_continuous
+ggplot(permits_Southeast, aes(x=Year, y=Value)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = c(0, max(permits_Southeast$Value))) +
+  scale_x_continuous(limits = c(2000, max(permits_Southeast$Year)))
+
+# Define scales in plot usings cartesian coordinates
+ggplot(permits_Southeast, aes(x=Year, y=Value)) +
+  geom_point() +
+  geom_line() +
+  coord_cartesian(xlim = c(2000, 2000, max(permits_Southeast$Year)), ylim = c(0, max(permits_Southeast$Value)))
+```
+
+Scale colors can be defined using the hue setting. Scale color brewer is an easy way to set colors using predefined color schemes. The type of scale in either dimension can be defined according to settings available in the ggplot documentation.
+
+```{r colorScheme}
+# Define color scheme and axis type
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10()
+```
+
+Plots can be broken into discrete sub-plots using the facet function. The tilda specifies the variable by which to split the sub-plots. Facet wrap is used for one-dimensional sequences and facet grid is used for two-dimensional sequences.
+
+```{r facets}
+# Create a plot that is faceted based on 'Gear' field
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear)
+```
+
+Defining labels can be done using the 'labs' function.
+
+```{r titles}
+# Set the labels for the titles and y-axis
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear, ncol = 2, scales = 'free') +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer')
+```
+
+Pre-existing themes for ggplot2 are available. These change the styling with pre-configured settings for background, axes, etc. The default is theme_gray. The available themes are available on the ggplot2 documentation.
+
+```{r themes}
+# Change the theme to a different pre-configured option
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear) +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  theme_bw()
+```
+
+Themes can also be used to modify the general styling of a plot. The ggplot2 documentation has a full list of the options that are available through the theme. The theme modifies the elements of background elements and elements surrounding the aesthetic/geometries.
+
+```{r themeSettings}
+# Change the theme settings to move the legend to the bottom
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  theme(legend.position = "bottom")
+```
+
+You can also save the theme as a variable and call it into a plot. If the theme is in an external script that is called in then you would be able to apply the same theme across plots in multiple projects. The same idea applies to other settings (i.e. you can set any plot aspect to a variable). Plots can also be built into functions that are then applied to many datasets. This would allow changing all plots by changing the function. Or you could build a personal plotting package with functions for multiple plot geometries and call it into your scripts as a library.
+
+```{r themeSettings}
+# Change the theme settings to move the legend to the bottom
+my_theme = theme(axis.title = element_text(size=16), axis.text = element_text(size = 12))
+
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  my_theme
+```
+
+Plots can be easily saved using "ggsave" command. This method works better for ggplot2 than any of the export methods from base R.
+
+```{r saving}
+# Save plot as a variable
+my_plot = ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  my_theme
+
+# Export plot to png
+ggsave('fish.png', plot = my_plot, width = 5)
+```
+
+## Publishing data, workflows, and products to the web for collaboration
+
+
+
