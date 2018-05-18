@@ -45,7 +45,7 @@ setwd(userDirectory)
 The environment settings for this session are:
 
 ```{r environmentSettings, echo=FALSE}
-# Print session info
+# Print session info to the markdown document
 sessionInfo()
 ```
 
@@ -54,6 +54,7 @@ sessionInfo()
 The following code produces an example point plot based on random numbers.
 
 ```{r examplePlot}
+# Create example plot in the markdown document
 ggplot(data.frame(x=rnorm(100), y=rnorm(100)), aes(x,y)) +
   geom_point()
 data('mpg')
@@ -64,31 +65,33 @@ data('mpg')
 The following code produces an example table using the "mpg" dataset.
 
 ```{r datatable}
+# Import example dataset and output a table in the markdown document
 data('mpg')
 datatable(mpg, caption='Mileage')
 ```
 
 ## Tidying data using dplyr and tidyr
 
-```{r readCSV}
+```{r readCatch}
 # Read in csv from url
 catch_data = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"), stringsAsFactors = FALSE)
 ```
 
 The pipe function (%>%) takes an initial defined argument and passes it as the first argument in an initial command. For every subsequent command where the pipe is repeated, the output from the last command is input as the first argument in a subsequent command. The final command needs to be stored as a variable.
 
-```{r gatherData}
-# Select columns for analysis and transpose into a new table shape.
+```{r gatherCatch}
+# Select columns for analysis and transpose into a new table shape
 catch_data = catch_data %>%
   select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum)
 
-# Transpose the data frame and save as a new data frame.
+# Gather the data frame and save as a new data frame
 catch_gather = gather(catch_data, key = species, value = catch, Chinook, Sockeye, Coho, Pink, Chum)
 ```
 
 The output table has "gathered" the catch-species columns into a "species" column and a "catch" column. The key specifies the new column name for the column names listed in the arguments and the value specifies the new column name for the values that existed within the columns listed in the arguments.
 
-```{r spreadData}
+```{r spreadCatch}
+# Spread the gathered data back to its wide form and save as a new data frame
 catch_spread = spread(catch_gather, key = species, value = catch, fill = NA)
 ```
 
@@ -98,18 +101,37 @@ The syntax for spreading the data functions in opposite such that key specifies 
 # Add a new column to data frame and multiply by 1000 to correct for units. An error for a non-numeric value in row 401 is corrected by converting to integer.
 catch_gather <- catch_gather %>% 
   rename(catch_thousands = catch) %>%
+  rename(regionCode = Region) %>%
   mutate(catch_thousands = ifelse(catch_thousands == "I", 1, catch_thousands),
          catch_thousands = as.integer(catch_thousands)) %>%
   mutate(catch = catch_thousands * 1000)
 ```
 
-
-```{r Analysis}
+```{r summaryTables}
+# Example summary by species
 catch_species = catch_gather %>%
   group_by(species) %>%
   summarize(catch_mean = mean(catch), num_obs = n())
 
+# Example summary for Chinook salmon by year
 catch_chinookYear = catch_gather %>%
   filter(species == 'Chinook') %>%
   group_by(Year) %>%
-  summarize(catch_mean = mean(catch), num_obs = n())
+  summarize(catch_mean = mean(catch), num_obs = n()) %>%
+  arrange(desc(mean_catch))
+```
+
+```{r readRegions}
+# Read in the region names csv from url
+region_names <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"), stringsAsFactors = FALSE)
+```
+
+```{r joinRegions}
+# Select and rename columns from the region_names data frame
+region_names = region_names %>%
+  select(code, mgmtArea) %>%
+  rename(region = mgmtArea) %>%
+  rename(regionCode = code)
+
+# Perform a left join to add the full region name to the catch_gather data frame
+catch_gather = left_join(catch_gather, region_names, by = c('regionCode' = 'regionCode'))
