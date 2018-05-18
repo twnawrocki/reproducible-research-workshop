@@ -2,9 +2,9 @@
 title: "Reproducible Analyses Workshop"
 author: "Timm Nawrocki"
 date: "May 17, 2018"
-output:
-  html_document:
-    keep_md: yes
+output: 
+  html_document: 
+    self_contained: no
     toc: yes
 ---
 
@@ -118,7 +118,7 @@ catch_chinookYear = catch_gather %>%
   filter(species == 'Chinook') %>%
   group_by(Year) %>%
   summarize(catch_mean = mean(catch), num_obs = n()) %>%
-  arrange(desc(mean_catch))
+  arrange(desc(catch_mean))
 ```
 
 The next csv to read in to a data frame contains full names that correspond to the region codes. This data frame will allow the addition of the region codes to the gathered catch data frame.
@@ -232,12 +232,7 @@ permits %>%
   summarize(meanval = mean(Value, na.rm = TRUE)) %>%
   ggplot(aes(x=Gear, y=meanval/sum(meanval))) +
     geom_col() +
-    scale_y_continuous(labels = scales::percent) +
-    scale_x_continuous(labels = c())
-
-# Create a box plot (unfinished)
-ggplot(permits, aes()) +
-  geom_boxplot()
+    scale_y_continuous(labels = scales::percent)
 
 # Creat a violin plot of just the data from Cook Inlet
 permits_CookInlet = filter(permits, Region == 'Cook Inlet')
@@ -339,7 +334,7 @@ ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
 
 You can also save the theme as a variable and call it into a plot. If the theme is in an external script that is called in then you would be able to apply the same theme across plots in multiple projects. The same idea applies to other settings (i.e. you can set any plot aspect to a variable). Plots can also be built into functions that are then applied to many datasets. This would allow changing all plots by changing the function. Or you could build a personal plotting package with functions for multiple plot geometries and call it into your scripts as a library.
 
-```{r themeSettings}
+```{r saveTheme}
 # Change the theme settings to move the legend to the bottom
 my_theme = theme(axis.title = element_text(size=16), axis.text = element_text(size = 12))
 
