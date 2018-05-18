@@ -98,8 +98,8 @@ catch_spread = spread(catch_gather, key = species, value = catch, fill = NA)
 The syntax for spreading the data functions in opposite such that key specifies the column headings to be added and the value parses into those columns.
 
 ```{r catchError}
-# Add a new column to data frame and multiply by 1000 to correct for units. An error for a non-numeric value in row 401 is corrected by converting to integer.
-catch_gather <- catch_gather %>% 
+# Add a new field to data frame and multiply by 1000 to correct for units. An error for a non-numeric value in row 401 is corrected by converting to integer.
+catch_gather = catch_gather %>% 
   rename(catch_thousands = catch) %>%
   rename(regionCode = Region) %>%
   mutate(catch_thousands = ifelse(catch_thousands == "I", 1, catch_thousands),
@@ -121,13 +121,17 @@ catch_chinookYear = catch_gather %>%
   arrange(desc(mean_catch))
 ```
 
+The next csv to read in to a data frame contains full names that correspond to the region codes. This data frame will allow the addition of the region codes to the gathered catch data frame.
+
 ```{r readRegions}
 # Read in the region names csv from url
-region_names <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"), stringsAsFactors = FALSE)
+region_names = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"), stringsAsFactors = FALSE)
 ```
 
+Joins between data frames in R function similarly to SQL relational databases. For small data projects, data manipulation in R is likely adequate. For large datasets or datasets that require long-term maintenance, SQL is a better data manipulation language.
+
 ```{r joinRegions}
-# Select and rename columns from the region_names data frame
+# Select and rename fields from the region_names data frame
 region_names = region_names %>%
   select(code, mgmtArea) %>%
   rename(region = mgmtArea) %>%
@@ -135,3 +139,58 @@ region_names = region_names %>%
 
 # Perform a left join to add the full region name to the catch_gather data frame
 catch_gather = left_join(catch_gather, region_names, by = c('regionCode' = 'regionCode'))
+```
+
+## Data Preparation Exercise
+
+```{r dataManipulation}
+# Read Andrew and Volk 2017 escapement goals csv into data frame
+escapement_goals = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92014.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement goals data frame to Bristol Bay region and sockeye salmon
+escapement_goals = filter(escapement_goals, Species == 'Sockeye' & Region == 'Bristol Bay' & Type == 'SEG')
+
+# Change Lower field to numeric in escapement goals
+escapement_goals$Lower = as.numeric(escapement_goals$Lower)
+
+# Replace 'eliminated' value in Lower field with NA and change to numeric
+escapement_goals = mutate(escapement_goals, Lower = ifelse(Lower == "eliminated", NA, Lower), Lower = as.numeric(Lower))
+
+# Select System, Upper, and Lower fields from escapement_goals
+escapement_goals = select(escapement_goals, System, Lower, Upper)
+
+# Read ADF&G 2017 daily escapement counts csv into data frame
+daily_escapement = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement counts data frame to Bristol Bay region and sockeye salmon
+daily_escapement = daily_escapement %>%
+  rename(Region = SASAP.Region) %>%
+  filter(Species == 'Sockeye' & Region == 'Bristol Bay')
+
+# Parse date field to multiple fields 
+daily_escapement = separate(daily_escapement, sampleDate, c("year", "month", "day"), "-")
+
+# Calculate annual total escapements for each stock and integrate escapement goal upper and lower and store as new data frame
+annual_escapement = daily_escapement %>%
+  group_by(year, Location) %>%
+  summarize(annualEscapement = sum(DailyCount))
+
+# Perform an inner join between annual_escapement and escapement goals to join the upper and lower bounds to the annual escapement for systems/locations for which SEG escapement goals have been documented
+annual_escapement = inner_join(annual_escapement, escapement_goals, by = c('Location' = 'System'))
+
+# Add new field 'goalMet' indicating a boolean for the statement 'The observed escapement was between the upper and lower goal bounds'
+annual_escapement$goalMet = annual_escapement$annualEscapement > annual_escapement$Lower & annual_escapement$annualEscapement < annual_escapement$Upper
+
+# Create empty vectors to hold data from loop
+percentMet = NULL
+stock = NULL
+
+# Loop through unique values of 'Location' field, which represent different stocks, calculate the percent of years for which SEG escapement goals were met, and append calculation value and stock name to vectors
+for (i in unique(annual_escapement$Location)) {
+  stock_escapement = filter(annual_escapement, Location == i)
+  percentMet = append(percentMet, sum(stock_escapement$goalMet)/nrow(stock_escapement))
+  stock = append(stock, i)
+}
+
+# Create data frame from the loop vectors
+percent_met = data.frame(stock, percentMet)

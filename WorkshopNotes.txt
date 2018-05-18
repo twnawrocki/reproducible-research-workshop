@@ -1,3 +1,0 @@
-1. Why output reformatted data as a csv instead of into a database that enforces data integrity and unity?
-2. R markdown for talks, papers, etc.
-3. R script for functions, packages, tools, etc.
