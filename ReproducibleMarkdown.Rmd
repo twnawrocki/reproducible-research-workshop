@@ -363,5 +363,59 @@ ggsave('fish.png', plot = my_plot, width = 5)
 
 ## Publishing data, workflows, and products to the web for collaboration
 
+Github pages works by setting up an index.html file in the repository. The index.html file can be generated using rmarkdown (or they could be generated using other methods).
 
+```{r}
+# Read ADF&G 2017 daily escapement counts csv into data frame
+daily_escapement = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement counts data frame to Bristol Bay region and sockeye salmon
+daily_escapement = daily_escapement %>%
+  rename(Region = SASAP.Region)
+
+# Parse date field to multiple fields 
+daily_escapement = separate(daily_escapement, sampleDate, c("year", "month", "day"), "-")
+
+# Calculate the sum escapement for annual escapement per
+median_escapement = daily_escapement %>%
+  group_by(Species, Region, year, Location) %>%
+  summarize(escapement = sum(DailyCount))
+
+#
+median_escapement = median_escapement %>%
+  group_by(Species) %>%
+  summarize(medianEscapement = median(escapement))
+
+ggplot(median_escapement, aes(Species, medianEscapement)) +
+  geom_col() +
+  coord_flip()
+
+locations = daily_escapement %>%
+  distinct(Location, Latitude, Longitude) %>%
+  drop_na()
+
+locations$Longitude = ifelse(locations$Longitude < 0, locations$Longitude, locations$Longitude * -1)
+
+# Add data table display to the R markdown output
+datatable(locations)
+```
+
+Leaflet is a javascript mapping application. R has a package to interface with leaflet.
+
+```{r addLeafletMap}
+# Add a marker
+markerIcon <- makeIcon(
+  iconUrl = "/index_files/marker-icon.png",
+  iconWidth = 25, iconHeight = 41,
+  iconAnchorX = 12, iconAnchorY = 41,
+  shadowUrl = "/index_files/marker-shadow.png",
+  shadowWidth = 41, shadowHeight = 41,
+  shadowAnchorX = 13, shadowAnchorY = 41
+)
+
+# Create a leaflet map based on the locations
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location, icon = markerIcon)
+```
 
