@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Timm Nawrocki" />
+
+<meta name="date" content="2018-09-24" />
+
+<title>BIOL-A601 R Assignment 2</title>
+
+<script src="BIOL_A601_R2_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="BIOL_A601_R2_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="BIOL_A601_R2_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="BIOL_A601_R2_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="BIOL_A601_R2_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="BIOL_A601_R2_files/navigation-1.1/tabsets.js"></script>
+<link href="BIOL_A601_R2_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="BIOL_A601_R2_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">BIOL-A601 R Assignment 2</h1>
+<h4 class="author"><em>Timm Nawrocki</em></h4>
+<h4 class="date"><em>September 24, 2018</em></h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#code-header"><span class="toc-section-number">1</span> Code header</a></li>
+<li><a href="#set-up-session"><span class="toc-section-number">2</span> Set up session</a><ul>
+<li><a href="#define-functions"><span class="toc-section-number">2.1</span> Define functions</a></li>
+</ul></li>
+<li><a href="#explore-hemlock-data"><span class="toc-section-number">3</span> Explore hemlock data</a><ul>
+<li><a href="#summarize-data-by-site"><span class="toc-section-number">3.1</span> Summarize data by site</a></li>
+<li><a href="#histogram"><span class="toc-section-number">3.2</span> Histogram</a></li>
+<li><a href="#box-plot-by-site"><span class="toc-section-number">3.3</span> Box plot by site</a></li>
+<li><a href="#confidence-interval"><span class="toc-section-number">3.4</span> Confidence interval</a></li>
+</ul></li>
+<li><a href="#explore-hypothetical-fish-population"><span class="toc-section-number">4</span> Explore hypothetical fish population</a></li>
+<li><a href="#sample-from-normally-distributed-data"><span class="toc-section-number">5</span> Sample from normally distributed data</a></li>
+<li><a href="#explore-daphnia-dataset"><span class="toc-section-number">6</span> Explore “Daphnia” Dataset</a><ul>
+<li><a href="#summarize-all-data"><span class="toc-section-number">6.1</span> Summarize all data</a></li>
+<li><a href="#summarize-data-by-river"><span class="toc-section-number">6.2</span> Summarize data by river</a></li>
+<li><a href="#histogram-for-river-tyne"><span class="toc-section-number">6.3</span> Histogram for River Tyne</a></li>
+<li><a href="#histogram-for-river-wear"><span class="toc-section-number">6.4</span> Histogram for River Wear</a></li>
+<li><a href="#display-histograms-in-grid"><span class="toc-section-number">6.5</span> Display histograms in grid</a></li>
+<li><a href="#box-plot-by-river"><span class="toc-section-number">6.6</span> Box plot by river</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="code-header" class="section level1">
+<h1><span class="header-section-number">1</span> Code header</h1>
+<pre class="r"><code># -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# R Assignment 2: Data Summary
+# Author: Timm Nawrocki
+# Created on: 2018-09-09
+# Usage: Code is intended to be executed as an R markdown in RStudio.
+# Description: &quot;BIOL-A601 R Assignment 2&quot; includes examples for summarizing data, including simple summary plots.
+# ---------------------------------------------------------------------------</code></pre>
+</div>
+<div id="set-up-session" class="section level1">
+<h1><span class="header-section-number">2</span> Set up session</h1>
+<p>The set up code installs libraries used in this assignment if any are not already installed. Sets working files based on user input.</p>
+<pre class="r"><code># Install required libraries if they are not already installed
+Required_Packages &lt;- c(&quot;dplyr&quot;, &quot;ggplot2&quot;, &quot;ggpmisc&quot;, &quot;readxl&quot;, &quot;tidyr&quot;, &quot;pander&quot;, &quot;gridExtra&quot;)
+New_Packages &lt;- Required_Packages[!(Required_Packages %in% installed.packages()[,&quot;Package&quot;])]
+if (length(New_Packages) &gt; 0) {
+  install.packages(New_Packages)
+}
+
+# Import required libraries
+library(dplyr)</code></pre>
+<pre><code>
+Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>The following objects are masked from &#39;package:stats&#39;:
+
+    filter, lag</code></pre>
+<pre><code>The following objects are masked from &#39;package:base&#39;:
+
+    intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(ggpmisc)</code></pre>
+<pre><code>For news about &#39;ggpmisc&#39;, please, see https://www.r4photobiology.info/</code></pre>
+<pre><code>For on-line documentation see https://docs.r4photobiology.info/ggpmisc/</code></pre>
+<pre class="r"><code>library(readxl)
+library(tidyr)
+library(pander)
+library(gridExtra)</code></pre>
+<pre><code>
+Attaching package: &#39;gridExtra&#39;</code></pre>
+<pre><code>The following object is masked from &#39;package:dplyr&#39;:
+
+    combine</code></pre>
+<pre class="r"><code># Select input files
+seeds_file = file.choose()
+daphnia_file = file.choose()</code></pre>
+<div id="define-functions" class="section level2">
+<h2><span class="header-section-number">2.1</span> Define functions</h2>
+<pre class="r"><code># Define a function to generate standardized histograms
+histogram = function(inData, variable, interval, range, title, x_label, y_label) {
+  font_size = theme(axis.title = element_text(size=14), axis.text = element_text(size = 12))
+  normalDist = function(x, mean, sd, n, interval) {
+    dnorm(x = x, mean = mean, sd = sd) * n * interval
+    }
+  plot = ggplot(data=inData, aes(variable)) +
+    theme_bw() +
+    geom_histogram(aes(y=..count..),
+                   breaks=seq(range[1], range[2], by = interval),
+                   colour = &#39;white&#39;,
+                   fill = &#39;grey20&#39;,
+                   alpha = 0.5) +
+    stat_function(fun = normalDist,
+                  args = c(mean = mean(variable),
+                           sd = sd(variable),
+                           n = length(variable),
+                           interval = interval)) +
+    labs(title=title) +
+    labs(x=x_label, y=y_label) +
+    font_size
+  return(plot)
+}
+
+# Define a function to generate standardized box plots
+box_plot = function(inData, X, y, title, x_label, y_label) {
+  font_size = theme(axis.title = element_text(size=14), axis.text = element_text(size = 12))
+  ggplot(data=inData, aes(X, y)) +
+    geom_boxplot() +
+    theme_bw() +
+    labs(title=title) +
+    labs(x=x_label, y=y_label) +
+    font_size
+}
+
+# Define a function to report 95% confidence interval lower and upper bounds
+confidence = function(mean, sd, n) {
+  error = qt(0.975, df=sample_n-1) * sample_sd / sqrt(sample_n)
+  upper = mean + error
+  lower = mean - error
+  return(c(upper, lower))
+}</code></pre>
+</div>
+</div>
+<div id="explore-hemlock-data" class="section level1">
+<h1><span class="header-section-number">3</span> Explore hemlock data</h1>
+<pre class="r"><code># Create data frame from seeds csv file
+seeds = read.csv(seeds_file, header=TRUE, stringsAsFactors = FALSE)</code></pre>
+<div id="summarize-data-by-site" class="section level2">
+<h2><span class="header-section-number">3.1</span> Summarize data by site</h2>
+<pre class="r"><code># Summarize the seeds dataset by site for number of observations, mean weight, and coefficient of variation for weight
+mean_site = seeds %&gt;%
+  group_by(site) %&gt;%
+  summarize(num_obs = n(), mean_weight = signif(mean(seed_wt), digits=2), site_cv = round(sd(seed_wt)/mean(seed_wt)*100, digits=0))
+
+# Create human readable column names for table display
+colnames(mean_site)[1] = &#39;Site&#39;
+colnames(mean_site)[2] = &#39;Number&#39;
+colnames(mean_site)[3] = &#39;Mean Weight (mg)&#39;
+colnames(mean_site)[4] = &#39;Coefficient of Variation (%)&#39;
+
+# Create output table
+mean_site</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Site</th>
+<th align="right">Number</th>
+<th align="right">Mean Weight (mg)</th>
+<th align="right">Coefficient of Variation (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">near</td>
+<td align="right">135</td>
+<td align="right">0.0030</td>
+<td align="right">33</td>
+</tr>
+<tr class="even">
+<td align="left">wolverine</td>
+<td align="right">48</td>
+<td align="right">0.0021</td>
+<td align="right">30</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="histogram" class="section level2">
+<h2><span class="header-section-number">3.2</span> Histogram</h2>
+<pre class="r"><code># Create a histogram plot for seed frequency by intervals of 0.0005 mg for all sites
+seed_histogram = histogram(seeds, seeds$seed_wt, 0.0005, c(0, 0.005), &quot;Histogram of Seed Weight&quot;, &quot;Seed Weight (mg)&quot;, &quot;Count&quot;)
+seed_histogram</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/histogram-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="box-plot-by-site" class="section level2">
+<h2><span class="header-section-number">3.3</span> Box plot by site</h2>
+<pre class="r"><code># Create a box plot for seed weight by site
+seed_boxplot = box_plot(seeds, seeds$site, seeds$seed_wt, &quot;Box plot of seed weight by site&quot;, &quot;Site&quot;, &quot;Seed Weight (mg)&quot;)
+seed_boxplot</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/boxplot-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="confidence-interval" class="section level2">
+<h2><span class="header-section-number">3.4</span> Confidence interval</h2>
+<pre class="r"><code># Compute sample mean, standard deviation, and size
+sample_mean = mean(seeds$seed_wt)
+sample_sd = sd(seeds$seed_wt)
+sample_n = length(seeds$seed_wt)
+
+# Calculate the 95% confidence interval
+confidence_interval = confidence(sample_mean, sample_sd, sample_n)
+
+# Report the coefficient of variation for seed weight and upper and lower bounds of 95% confidence interval
+cat(paste(&#39;Coefficient of variation = &#39;, toString(round(sample_sd/sample_mean*100, digits=0)), &#39;%\n&#39;, &#39;Upper bound of 95% confidence interval is &#39;, toString(signif(confidence_interval[1], digits=2)), &#39; mg\n&#39;, &#39;Lower bound of 95% confidence interval is &#39;, toString(signif(confidence_interval[2], digits=2)), &#39; mg\n&#39;, sep=&#39;&#39;))</code></pre>
+<pre><code>Coefficient of variation = 37%
+Upper bound of 95% confidence interval is 0.0029 mg
+Lower bound of 95% confidence interval is 0.0026 mg</code></pre>
+</div>
+</div>
+<div id="explore-hypothetical-fish-population" class="section level1">
+<h1><span class="header-section-number">4</span> Explore hypothetical fish population</h1>
+<pre class="r"><code># Define a hypothetical population of 1,000 fish with mean length of 50 cm and standard deviation in length of 5 cm in a normal distribution
+length_mean = 50
+length_sd = 5
+fish_n = 1000
+fish_population = rnorm(fish_n, length_mean, length_sd)
+fish_population = data.frame(fish_population)
+
+# Create a histogram of fish length
+fish_histogram = histogram(fish_population, fish_population$fish_population, 4, c(30, 70), &quot;Histogram of Fish Length&quot;, &quot;Length (cm)&quot;, &quot;Count&quot;)
+fish_histogram</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/fish_stats-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Calculate mean and standard deviation
+cat(paste(&#39;Mean = &#39;, toString(round(mean(fish_population$fish_population), digits=1)), &#39; cm\n&#39;, &#39;Standard deviation = &#39;, toString(round(sd(fish_population$fish_population), digits=1)), &#39; cm\n&#39;, sep=&#39;&#39;))</code></pre>
+<pre><code>Mean = 49.8 cm
+Standard deviation = 5 cm</code></pre>
+</div>
+<div id="sample-from-normally-distributed-data" class="section level1">
+<h1><span class="header-section-number">5</span> Sample from normally distributed data</h1>
+<pre class="r"><code># Create a hypothetical population of count data
+mean = 232
+sd = 34
+n = 10000
+population = rnorm(n, mean, sd)
+sample_population = sample(population, 100)
+population = data.frame(population)
+sample_population = data.frame(sample_population)
+
+# Create a plot of full population against the normal distribution curve
+full_plot = histogram(population, population$population, 20, c(100, 400), &quot;Histogram of Entire Normally Distributed Population&quot;, &quot;Hypothetical X (unit)&quot;, &quot;Count&quot;)
+full_plot</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/sample-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Create a plot of subsample against the normal distribution curve
+sample_plot = histogram(sample_population, sample_population$sample_population, 20, c(100, 400), &quot;Histogram of 1% Sample of Population&quot;, &quot;Hypothetical X (unit)&quot;, &quot;Count&quot;)
+sample_plot</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/sample-2.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="explore-daphnia-dataset" class="section level1">
+<h1><span class="header-section-number">6</span> Explore “Daphnia” Dataset</h1>
+<pre class="r"><code># Create data frame from Daphnia excel file
+river_data = read_excel(daphnia_file)</code></pre>
+<div id="summarize-all-data" class="section level2">
+<h2><span class="header-section-number">6.1</span> Summarize all data</h2>
+<pre class="r"><code># Calculate mean, standard deviation, coefficient of variation, and upper and lower bounds of 95% confidence interval
+mean_gr = mean(river_data$Growth.rate)
+sd_gr = sd(river_data$Growth.rate)
+cv_gr = sd_gr/mean_gr*100
+upper_gr = confidence(mean_gr, sd_gr, length(river_data$Growth.rate))[1]
+lower_gr = confidence(mean_gr, sd_gr, length(river_data$Growth.rate))[2]
+
+# Report results
+cat(paste(&#39;Mean = &#39;, toString(round(mean_gr, digits=2)), &#39;\n&#39;, &#39;Standard deviation = &#39;, toString(round(sd_gr, digits=2)), &#39;\n&#39;, &#39;Coefficient of Variation = &#39;, toString(round(cv_gr, digits=0)), &#39;%\n&#39;, &#39;Upper bound of 95% confidence interval = &#39;, toString(round(upper_gr, digits=4)), &#39;\n&#39;, &#39;Lower bound of 95% confidence interval = &#39;, toString(round(lower_gr, digits=4)), &#39;\n&#39;, sep=&#39;&#39;))</code></pre>
+<pre><code>Mean = 3.85
+Standard deviation = 1.28
+Coefficient of Variation = 33%
+Upper bound of 95% confidence interval = 3.8521
+Lower bound of 95% confidence interval = 3.8518</code></pre>
+</div>
+<div id="summarize-data-by-river" class="section level2">
+<h2><span class="header-section-number">6.2</span> Summarize data by river</h2>
+<pre class="r"><code># Summarize the growth rate dataset by river for number of observations, mean weight, coefficient of variation, upper 95% confidence interval, and lower 95% confidence interval
+mean_river = river_data %&gt;%
+  group_by(River) %&gt;%
+  summarize(num_obs = n(), mean_rate = signif(mean(Growth.rate), digits=4), river_cv = round(sd(Growth.rate)/mean(Growth.rate)*100, digits=1), upper_ci = round(confidence(mean(Growth.rate), sd(Growth.rate), length(Growth.rate))[1], digits=5), lower_ci = round(confidence(mean(Growth.rate), sd(Growth.rate), length(Growth.rate))[2], digits=5))
+
+# Create human readable column names for table display
+colnames(mean_river)[1] = &#39;River&#39;
+colnames(mean_river)[2] = &#39;Number&#39;
+colnames(mean_river)[3] = &#39;Mean growth rate&#39;
+colnames(mean_river)[4] = &#39;Coefficient of Variation (%)&#39;
+colnames(mean_river)[5] = &#39;Upper CI&#39;
+colnames(mean_river)[6] = &#39;Lower CI&#39;
+
+# Create output table
+mean_river</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">River</th>
+<th align="right">Number</th>
+<th align="right">Mean growth rate</th>
+<th align="right">Coefficient of Variation (%)</th>
+<th align="right">Upper CI</th>
+<th align="right">Lower CI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Tyne</td>
+<td align="right">36</td>
+<td align="right">3.686</td>
+<td align="right">28.5</td>
+<td align="right">3.68601</td>
+<td align="right">3.68571</td>
+</tr>
+<tr class="even">
+<td align="left">Wear</td>
+<td align="right">36</td>
+<td align="right">4.018</td>
+<td align="right">36.8</td>
+<td align="right">4.01810</td>
+<td align="right">4.01780</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="histogram-for-river-tyne" class="section level2">
+<h2><span class="header-section-number">6.3</span> Histogram for River Tyne</h2>
+<pre class="r"><code># Subset the river data to include only observations for the Tyne
+tyne_data = subset(river_data, River==&#39;Tyne&#39;)
+
+# Create a histogram plot for growth rate frequency for the Tyne
+tyne_histogram = histogram(tyne_data, tyne_data$Growth.rate, 0.5, c(2, 6), &quot;Histogram of Growth Rates on the Tyne River&quot;, &quot;Growth rate&quot;, &quot;Count&quot;)</code></pre>
+</div>
+<div id="histogram-for-river-wear" class="section level2">
+<h2><span class="header-section-number">6.4</span> Histogram for River Wear</h2>
+<pre class="r"><code># Subset the river data to include only observations for the Wear
+wear_data = subset(river_data, River==&#39;Wear&#39;)
+
+# Create a histogram plot for growth rate frequency for the Wear
+wear_histogram = histogram(wear_data, wear_data$Growth.rate, 0.5, c(1, 7.5), &quot;Histogram of Growth Rates on the Wear River&quot;, &quot;Growth rate&quot;, &quot;Count&quot;)</code></pre>
+</div>
+<div id="display-histograms-in-grid" class="section level2">
+<h2><span class="header-section-number">6.5</span> Display histograms in grid</h2>
+<pre class="r"><code># Combine plots into a single output and display
+plot_grid = grid.arrange(tyne_histogram, wear_histogram, nrow=1)</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/outputHistogram-1.png" width="1344" style="display: block; margin: auto;" /></p>
+</div>
+<div id="box-plot-by-river" class="section level2">
+<h2><span class="header-section-number">6.6</span> Box plot by river</h2>
+<pre class="r"><code># Create a box plot for growth rate by river
+river_boxplot = box_plot(river_data, river_data$River, river_data$Growth.rate, &quot;Box plot of growth rates by river&quot;, &quot;River&quot;, &quot;Growth rate&quot;)
+river_boxplot</code></pre>
+<p><img src="BIOL_A601_R2_files/figure-html/riverBoxplot-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

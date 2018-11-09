@@ -1,0 +1,465 @@
+---
+title: "SASAP Reproducible Analyses in R Workshop"
+author: "Timm Nawrocki"
+date: "May 17, 2018"
+output: 
+  html_document: 
+    number_sections: yes
+    self_contained: no
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+```
+
+# Code header
+
+```{r header}
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------------------------
+# SASAP Reproducible Analyses in R Workshop
+# Author: Timm Nawrocki
+# Created on: 2018-05-17
+# Usage: Code is intended to be executed as an R markdown or R script in RStudio.
+# Description: "R Assignment 2: Data Summary" is an R assignment for BIOL-A601, Fall 2018.
+# ---------------------------------------------------------------------------
+```
+
+# Set up session
+
+The set up code installs libraries used in this assignment if any are not already installed. Sets a working file based on user input.
+
+```{r Set Libraries, include=FALSE}
+# Install required libraries if they are not already installed.
+Required_Packages <- c("devtools", "dplyr", "DT", "ggplot2", "ggpmisc", "kableExtra", "leaflet", "readxl", "remotes", "tidyr")
+New_Packages <- Required_Packages[!(Required_Packages %in% installed.packages()[,"Package"])]
+if (length(New_Packages) > 0) {
+  install.packages(New_Packages)
+}
+
+# Import required libraries.
+library(devtools)
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(ggpmisc)
+library(kableExtra)
+library(leaflet)
+library(readxl)
+library(remotes)
+library(tidyr)
+
+# Set seed
+set.seed(415)
+
+# Set working directory by user input
+userDirectory <- choose.dir()
+setwd(userDirectory)
+```
+
+The environment settings for this session are:
+
+```{r environmentSettings, echo=FALSE}
+# Print session info to the markdown document
+sessionInfo()
+```
+
+# Example Plot and Table
+
+The following code produces an example point plot based on random numbers.
+
+```{r examplePlot}
+# Create example plot in the markdown document
+ggplot(data.frame(x=rnorm(100), y=rnorm(100)), aes(x,y)) +
+  geom_point() +
+  theme_bw()
+data('mpg')
+```
+
+The following code produces an example table using the "mpg" dataset.
+
+```{r datatable}
+# Import example dataset and output a table in the markdown document
+data('mpg')
+datatable(mpg, caption='Mileage')
+```
+
+# Tidying data using dplyr and tidyr
+
+```{r readCatch}
+# Read in csv from url
+catch_data = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"), stringsAsFactors = FALSE)
+```
+
+The pipe function (%>%) takes an initial defined argument and passes it as the first argument in an initial command. For every subsequent command where the pipe is repeated, the output from the last command is input as the first argument in a subsequent command. The final command needs to be stored as a variable.
+
+```{r gatherCatch}
+# Select columns for analysis and transpose into a new table shape
+catch_data = catch_data %>%
+  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum)
+
+# Gather the data frame and save as a new data frame
+catch_gather = gather(catch_data, key = species, value = catch, Chinook, Sockeye, Coho, Pink, Chum)
+```
+
+The output table has "gathered" the catch-species columns into a "species" column and a "catch" column. The key specifies the new column name for the column names listed in the arguments and the value specifies the new column name for the values that existed within the columns listed in the arguments.
+
+```{r spreadCatch}
+# Spread the gathered data back to its wide form and save as a new data frame
+catch_spread = spread(catch_gather, key = species, value = catch, fill = NA)
+```
+
+The syntax for spreading the data functions in opposite such that key specifies the column headings to be added and the value parses into those columns.
+
+```{r catchError}
+# Add a new field to data frame and multiply by 1000 to correct for units. An error for a non-numeric value in row 401 is corrected by converting to integer.
+catch_gather = catch_gather %>% 
+  rename(catch_thousands = catch) %>%
+  rename(regionCode = Region) %>%
+  mutate(catch_thousands = ifelse(catch_thousands == "I", 1, catch_thousands),
+         catch_thousands = as.integer(catch_thousands)) %>%
+  mutate(catch = catch_thousands * 1000)
+```
+
+```{r summaryTables}
+# Example summary by species
+catch_species = catch_gather %>%
+  group_by(species) %>%
+  summarize(catch_mean = mean(catch), num_obs = n())
+
+# Example summary for Chinook salmon by year
+catch_chinookYear = catch_gather %>%
+  filter(species == 'Chinook') %>%
+  group_by(Year) %>%
+  summarize(catch_mean = mean(catch), num_obs = n()) %>%
+  arrange(desc(catch_mean))
+
+# Display table
+datatable(catch_chinookYear, caption='Summary Table')
+```
+
+The next csv to read in to a data frame contains full names that correspond to the region codes. This data frame will allow the addition of the region codes to the gathered catch data frame.
+
+```{r readRegions}
+# Read in the region names csv from url
+region_names = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"), stringsAsFactors = FALSE)
+```
+
+Joins between data frames in R function similarly to SQL relational databases. For small data projects, data manipulation in R is likely adequate. For large datasets or datasets that require long-term maintenance, SQL is a better data manipulation language.
+
+```{r joinRegions}
+# Select and rename fields from the region_names data frame
+region_names = region_names %>%
+  select(code, mgmtArea) %>%
+  rename(region = mgmtArea) %>%
+  rename(regionCode = code)
+
+# Perform a left join to add the full region name to the catch_gather data frame
+catch_gather = left_join(catch_gather, region_names, by = c('regionCode' = 'regionCode'))
+```
+
+## Data Preparation Exercise
+
+```{r dataManipulation}
+# Read Andrew and Volk 2017 escapement goals csv into data frame
+escapement_goals = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92014.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement goals data frame to Bristol Bay region and sockeye salmon
+escapement_goals = filter(escapement_goals, Species == 'Sockeye' & Region == 'Bristol Bay' & Type == 'SEG')
+
+# Change Lower field to numeric in escapement goals
+escapement_goals$Lower = as.numeric(escapement_goals$Lower)
+
+# Replace 'eliminated' value in Lower field with NA and change to numeric
+escapement_goals = mutate(escapement_goals, Lower = ifelse(Lower == "eliminated", NA, Lower), Lower = as.numeric(Lower))
+
+# Select System, Upper, and Lower fields from escapement_goals
+escapement_goals = select(escapement_goals, System, Lower, Upper)
+
+# Read ADF&G 2017 daily escapement counts csv into data frame
+daily_escapement = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement counts data frame to Bristol Bay region and sockeye salmon
+daily_escapement = daily_escapement %>%
+  rename(Region = SASAP.Region) %>%
+  filter(Species == 'Sockeye' & Region == 'Bristol Bay')
+
+# Parse date field to multiple fields 
+daily_escapement = separate(daily_escapement, sampleDate, c("year", "month", "day"), "-")
+
+# Calculate annual total escapements for each stock and integrate escapement goal upper and lower and store as new data frame
+annual_escapement = daily_escapement %>%
+  group_by(year, Location) %>%
+  summarize(annualEscapement = sum(DailyCount))
+
+# Perform an inner join between annual_escapement and escapement goals to join the upper and lower bounds to the annual escapement for systems/locations for which SEG escapement goals have been documented
+annual_escapement = inner_join(annual_escapement, escapement_goals, by = c('Location' = 'System'))
+
+# Add new field 'goalMet' indicating a boolean for the statement 'The observed escapement was between the upper and lower goal bounds'
+annual_escapement$goalMet = annual_escapement$annualEscapement > annual_escapement$Lower & annual_escapement$annualEscapement < annual_escapement$Upper
+
+# Create empty vectors to hold data from loop
+percentMet = NULL
+stock = NULL
+
+# Loop through unique values of 'Location' field, which represent different stocks, calculate the percent of years for which SEG escapement goals were met, and append calculation value and stock name to vectors
+for (i in unique(annual_escapement$Location)) {
+  stock_escapement = filter(annual_escapement, Location == i)
+  percentMet = append(percentMet, sum(stock_escapement$goalMet)/nrow(stock_escapement))
+  stock = append(stock, i)
+}
+
+# Create data frame from the loop vectors
+percent_met = data.frame(stock, percentMet)
+
+# Display table
+datatable(percent_met, caption='Percent of escapement goals met')
+```
+
+# Foundations of ggplot2
+
+The aesthetic dataset should be mapped into the main ggplot, not the geometry. The geometry should be added afterwards. It is possible to add multiple datasets into a single plot, but they will have competing geometries. This causes a plot that is difficult to interpret. In general, a single plot should have a single aesthetic dataset.
+
+The plot could have multiple geometries: for example, a point plot with a line of best fit. Adding geometries can be thought of as adding multiple layers using the same dataset mapping. Each line in a ggplot must be connected with a '+'.
+
+Colors and fills and the column that differentiates colors are defined in the aesthetic. Aesthetics map the data. The mappings are different than the settings. Settings can be defined in the geometry.
+
+```{r foundationsggplot2}
+# Read monthly salmon permit values into data frame
+permits <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa3c58bd6-481e-4c64-aa93-795df10a4664", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Define a new point plot based on the permits dataset with color set to 'Gear' field
+ggplot(permits, aes(Value, StdDev, color = Gear)) +
+  geom_point() +
+  theme_bw()
+```
+
+The size of the geometry can be defined as a constant or variable. For example, the size of points can be defined by a varible in the dataset.
+
+```{r sizeggplot2}
+# Modify point plot based on the permits dataset with size set to 'Range' field
+ggplot(permits, aes(Value, StdDev, color = Gear, size = Range)) +
+  geom_point() +
+  theme_bw()
+```
+
+The type of plot is always defined by the geometry. The ggplot2 documentation includes links to all of the types of plots that are possible. The aesthetic arguments change depending on the geometry. For example, histograms only have an x axis defined.
+
+In markdown, two plots produced in the same code chunk will be toggle-able by thumbnails. Discrete axes can be reordered by explicitly defining either an order as vector or a sort order.
+
+```{r definingPlotTypes}
+# Create a column plot with the x axis defined as the 'Gear' field
+permits %>%
+  group_by(Gear) %>%
+  summarize(meanval = mean(Value, na.rm = TRUE)) %>%
+  ggplot(aes(x=Gear, y=meanval/sum(meanval))) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent)
+
+# Creat a violin plot of just the data from Cook Inlet
+permits_CookInlet = filter(permits, Region == 'Cook Inlet')
+
+ggplot(permits_CookInlet, aes(x=Gear, y=Value)) +
+  geom_violin() +
+  theme_bw()
+
+# Create a violin plot of just the data from Bristol Bay
+permits_BristolBay = filter(permits, Region == 'Bristol Bay')
+
+ggplot(permits_BristolBay, aes(x=Gear, y=Value)) +
+  geom_violin() +
+  theme_bw()
+```
+
+Geometry-specific settings can be added per geometry when adding multiple layers so that the layers match better, etc.
+
+```{r multipleLayers}
+# Add point geometry overlaying violin geometry
+ggplot(permits_CookInlet, aes(x=Gear, y=Value)) +
+  geom_violin() +
+  geom_point(position = 'jitter', shape = 1) +
+  theme_bw()
+
+# Add point geometry over a smoothing algorithm
+ggplot(permits_CookInlet, aes(x=Value, y=StdDev)) +
+  geom_smooth(method = 'loess') +
+  geom_point() +
+  theme_bw()
+```
+
+Scales can be defined based on limits in the data. Defining scales should be done after adding geometries. The scales can also be defined as cartesian coorindates limits.
+
+```{r plotScales}
+# Create a new data frame of permits in Southeast using Purse Seine gear
+permits_Southeast = filter(permits, Region == 'Southeast' & Gear == 'Purse Seine')
+
+# Define scales in plot using scale_continuous
+ggplot(permits_Southeast, aes(x=Year, y=Value)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(limits = c(0, max(permits_Southeast$Value))) +
+  scale_x_continuous(limits = c(2000, max(permits_Southeast$Year))) +
+  theme_bw()
+
+# Define scales in plot usings cartesian coordinates
+ggplot(permits_Southeast, aes(x=Year, y=Value)) +
+  geom_point() +
+  geom_line() +
+  coord_cartesian(xlim = c(2000, 2000, max(permits_Southeast$Year)), ylim = c(0, max(permits_Southeast$Value))) +
+  theme_bw()
+```
+
+Scale colors can be defined using the hue setting. Scale color brewer is an easy way to set colors using predefined color schemes. The type of scale in either dimension can be defined according to settings available in the ggplot documentation.
+
+```{r colorScheme}
+# Define color scheme and axis type
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  theme_bw()
+```
+
+Plots can be broken into discrete sub-plots using the facet function. The tilda specifies the variable by which to split the sub-plots. Facet wrap is used for one-dimensional sequences and facet grid is used for two-dimensional sequences.
+
+```{r facets}
+# Create a plot that is faceted based on 'Gear' field
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear) +
+  theme_bw()
+```
+
+Defining labels can be done using the 'labs' function.
+
+```{r titles}
+# Set the labels for the titles and y-axis
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear, ncol = 2, scales = 'free') +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  theme_bw()
+```
+
+Pre-existing themes for ggplot2 are available. These change the styling with pre-configured settings for background, axes, etc. The default is theme_gray. The available themes are available on the ggplot2 documentation.
+
+```{r themes}
+# Change the theme to a different pre-configured option
+ggplot(permits, aes(x=Year, y=Value)) +
+  geom_point() +
+  facet_wrap(~Gear) +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  theme_dark()
+```
+
+Themes can also be used to modify the general styling of a plot. The ggplot2 documentation has a full list of the options that are available through the theme. The theme modifies the elements of background elements and elements surrounding the aesthetic/geometries.
+
+```{r themeSettings}
+# Change the theme settings to move the legend to the bottom
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  theme(legend.position = "bottom") +
+  theme_bw()
+```
+
+You can also save the theme as a variable and call it into a plot. If the theme is in an external script that is called in then you would be able to apply the same theme across plots in multiple projects. The same idea applies to other settings (i.e. you can set any plot aspect to a variable). Plots can also be built into functions that are then applied to many datasets. This would allow changing all plots by changing the function. Or you could build a personal plotting package with functions for multiple plot geometries and call it into your scripts as a library.
+
+```{r saveTheme}
+# Change the theme settings to move the legend to the bottom
+my_theme = theme(axis.title = element_text(size=16), axis.text = element_text(size = 12))
+
+ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  my_theme +
+  theme_bw()
+```
+
+Plots can be easily saved using "ggsave" command. This method works better for ggplot2 than any of the export methods from base R.
+
+```{r saving}
+# Save plot as a variable
+my_plot = ggplot(permits, aes(x=Value, y=StdDev, color = Gear)) +
+  geom_point() +
+  scale_color_brewer(palette = "Paired") +
+  scale_x_log10() +
+  labs(y = 'Permit Value', title = 'Permits by Gear Type', subtitle = 'I am a computer') +
+  my_theme +
+  theme_bw()
+
+# Export plot to png
+ggsave('fish.png', plot = my_plot, width = 5)
+```
+
+# Publishing data, workflows, and products to the web for collaboration
+
+Github pages works by setting up an index.html file in the repository. The index.html file can be generated using rmarkdown (or they could be generated using other methods).
+
+```{r medianEscapement}
+# Read ADF&G 2017 daily escapement counts csv into data frame
+daily_escapement = read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), stringsAsFactors = FALSE)
+
+# Filter escapement counts data frame to Bristol Bay region and sockeye salmon
+daily_escapement = daily_escapement %>%
+  rename(Region = SASAP.Region)
+
+# Parse date field to multiple fields 
+daily_escapement = separate(daily_escapement, sampleDate, c("year", "month", "day"), "-")
+
+# Calculate the sum escapement for annual escapement per
+median_escapement = daily_escapement %>%
+  group_by(Species, Region, year, Location) %>%
+  summarize(escapement = sum(DailyCount))
+
+# Calculate median escapement by species
+median_escapement = median_escapement %>%
+  group_by(Species) %>%
+  summarize(medianEscapement = median(escapement))
+
+# Create a plot of median escapement by species
+ggplot(median_escapement, aes(Species, medianEscapement)) +
+  geom_col() +
+  coord_flip() +
+  theme_bw()
+
+# Identify unique locations and add to new data frame
+locations = daily_escapement %>%
+  distinct(Location, Latitude, Longitude) %>%
+  drop_na()
+
+# Correct positive longitudes
+locations$Longitude = ifelse(locations$Longitude < 0, locations$Longitude, locations$Longitude * -1)
+
+# Add data table display to the R markdown output
+datatable(locations)
+```
+
+## Simple web mapping
+
+Leaflet is a javascript mapping application. R has a package to interface with leaflet.
+
+```{r addLeafletMap}
+# Add a marker
+markerIcon <- makeIcon(
+  iconUrl = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon.png",
+  iconWidth = 25, iconHeight = 41,
+  iconAnchorX = 12, iconAnchorY = 41,
+  shadowUrl = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png",
+  shadowWidth = 41, shadowHeight = 41,
+  shadowAnchorX = 13, shadowAnchorY = 41
+)
+
+# Create a leaflet map based on the locations
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location, icon = markerIcon)
+```
+
+The End!
